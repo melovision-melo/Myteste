@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Links collection
+    match /links/{linkId} {
+      // Any visitor can query links by slug for redirection or increment click counts
+      allow read: if true;
+      
+      // Only authenticated users can create links with their own uid
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Owner can update everything; public/any user can increment clicks during redirect
+      allow update: if (request.auth != null && resource.data.userId == request.auth.uid) ||
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks', 'lastClickedAt']));
+      
+      // Only owner can delete their links
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+  }
+}
